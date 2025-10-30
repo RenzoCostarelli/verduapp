@@ -44,7 +44,7 @@ export const dataService = {
   /**
    * Add new entry to Supabase
    */
-  async addEntry(entry: Omit<Entry, "id" | "created_by" | "created_at">): Promise<Entry> {
+  async addEntry(entry: Omit<Entry, "id" | "created_by" | "created_at" | "user_email">): Promise<Entry> {
     const supabase = createClient();
 
     // Get current user
@@ -75,6 +75,7 @@ export const dataService = {
       ...data,
       date: new Date(data.date),
       created_at: data.created_at ? new Date(data.created_at) : undefined,
+      user_email: user.email || undefined,
     };
   },
 
