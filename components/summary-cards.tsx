@@ -27,33 +27,33 @@ export function SummaryCards({ data, dateRange }: SummaryCardsProps) {
           </span>
         </p>
       )}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
         <Card>
-          <div className="text-sm font-medium text-muted-foreground">
+          <div className="text-sm mb-1 font-medium text-muted-foreground">
             Ingresos
           </div>
 
-          <div className=" font-bold text-green-600">
+          <div className=" font-bold text-green-600 text-sm">
             {formatCurrency(data.totalIncome)}
           </div>
         </Card>
 
         <Card>
-          <div className="text-sm font-medium text-muted-foreground">
+          <div className="text-sm mb-1 font-medium text-muted-foreground">
             Gastos
           </div>
-          <div className=" font-bold text-red-600 ">
+          <div className=" font-bold text-red-600 text-sm">
             {formatCurrency(data.totalExpenses)}
           </div>
         </Card>
 
         <Card className="col-span-2">
-          <div className="text-sm font-medium text-muted-foreground">
+          <div className="text-sm mb-1 font-medium text-muted-foreground ">
             Balance
           </div>
 
           <div
-            className={` font-bold ${
+            className={` font-bold text-sm ${
               data.balance >= 0 ? "text-blue-600" : "text-red-600"
             }`}
           >

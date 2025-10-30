@@ -86,6 +86,12 @@ export function DashboardClient({
     setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
+  const handleUpdateEntry = (updatedEntry: Entry) => {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+    );
+  };
+
   const handleFilterChange = (range: DateRange) => setDateRange(range);
 
   if (isLoading) {
@@ -120,6 +126,7 @@ export function DashboardClient({
           <EntriesTable
             entries={filteredEntries}
             onDelete={handleDeleteEntry}
+            onUpdate={handleUpdateEntry}
           />
         </div>
         <NavBar />

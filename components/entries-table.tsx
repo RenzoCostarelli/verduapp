@@ -7,16 +7,17 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/formatting";
 import type { Entry, PaymentMethod } from "@/lib/types";
 import { getEntryTypeLabel, getPaymentMethodLabel } from "@/lib/utils";
-import { Eye, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronsDown, Eye, Trash2 } from "lucide-react";
 import { Card, Input } from "pixel-retroui";
 import { EntryDetailDialog } from "./entry-detail-dialog";
 
 interface EntriesTableProps {
   entries: Entry[];
   onDelete: (id: string) => void;
+  onUpdate?: (updatedEntry: Entry) => void;
 }
 
-export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
+export function EntriesTable({ entries, onDelete, onUpdate }: EntriesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [methodFilter, setMethodFilter] = useState<PaymentMethod | "all">(
     "all"
@@ -117,7 +118,7 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
         <table className="w-full text-sm">
           <thead className="bg-muted border-b">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold">Tipo</th>
+              {/* <th className="px-4 py-3 text-left font-semibold">Tipo</th> */}
               <th className="px-4 py-3 text-left font-semibold">Monto</th>
               <th className="px-4 py-3 text-left font-semibold">Fecha/Hora</th>
               <th className="px-4 py-3 text-left font-semibold">Método</th>
@@ -132,16 +133,21 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
                 key={entry.id}
                 className="border-b hover:bg-muted/50 transition-colors"
               >
-                <td className="px-4 py-3">
+                {/* <td className="px-4 py-3">
                   <Badge
                     variant={
                       entry.type === "income" ? "default" : "destructive"
                     }
                     className="w-fit"
                   >
-                    {getEntryTypeLabel(entry.type)}
+                    <ChevronsDown
+                      className={`h-3 w-3 transition-transform duration-200 ${
+                        entry.type === "income" ? "rotate-180" : "rotate-0"
+                      }`}
+                      aria-hidden="true"
+                    />
                   </Badge>
-                </td>
+                </td> */}
                 <td
                   className={`px-4 py-3 font-semibold whitespace-nowrap ${
                     entry.type === "income" ? "text-green-600" : "text-red-600"
@@ -163,7 +169,7 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
                   {entry.user_email?.split("@")[0] || "-"}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
+                  <div className="flex items-center justify-center gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -178,7 +184,7 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
                       onClick={() => handleDelete(entry.id)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 text-red-600" />
                     </Button>
                   </div>
                 </td>
@@ -192,7 +198,7 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
+            {(currentPage - 1) * itemsPerPage + 1} a{" "}
             {Math.min(currentPage * itemsPerPage, filteredEntries.length)} de{" "}
             {filteredEntries.length}
           </p>
@@ -225,6 +231,7 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
         entry={selectedEntry}
         isOpen={isDetailOpen}
         onClose={handleCloseDetail}
+        onUpdate={onUpdate}
       />
     </div>
   );

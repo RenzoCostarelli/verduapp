@@ -94,6 +94,23 @@ export const dataService = {
   },
 
   /**
+   * Update entry description by id
+   */
+  async updateEntryDescription(id: string, description: string | undefined): Promise<void> {
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("entries")
+      .update({ description: description || null })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating entry description:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Filter entries by date range
    */
   async getEntriesByDateRange(range: DateRange): Promise<Entry[]> {

@@ -1,23 +1,69 @@
 "use client";
 
-import { Popup } from "pixel-retroui";
+import { useState } from "react";
+import { Popup, Button, TextArea } from "pixel-retroui";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/formatting";
 import type { Entry } from "@/lib/types";
 import { getEntryTypeLabel, getPaymentMethodLabel } from "@/lib/utils";
+import { dataService } from "@/lib/data-service";
+import { toast } from "sonner";
+import { Pencil, Save, X } from "lucide-react";
 
 interface EntryDetailDialogProps {
   entry: Entry | null;
   isOpen: boolean;
   onClose: () => void;
+  onUpdate?: (updatedEntry: Entry) => void;
 }
 
 export function EntryDetailDialog({
   entry,
   isOpen,
   onClose,
+  onUpdate,
 }: EntryDetailDialogProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedDescription, setEditedDescription] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
   if (!entry) return null;
+
+  const handleEditClick = () => {
+    setEditedDescription(entry.description || "");
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedDescription("");
+  };
+
+  const handleSaveDescription = async () => {
+    setIsSaving(true);
+    try {
+      await dataService.updateEntryDescription(entry.id, editedDescription);
+
+      toast.success("Éxito", {
+        description: "Descripción actualizada correctamente",
+      });
+
+      // Update the entry object
+      const updatedEntry = { ...entry, description: editedDescription || undefined };
+      if (onUpdate) {
+        onUpdate(updatedEntry);
+      }
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating description:", error);
+      toast.error("Error", {
+        description: "No se pudo actualizar la descripción",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <Popup isOpen={isOpen} onClose={onClose} bg="lightpink" baseBg="palegreen">
@@ -73,14 +119,57 @@ export function EntryDetailDialog({
 
           {/* Description */}
           <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-neutral-600">
-              Descripción:
-            </span>
-            <div className="bg-neutral-50 border border-neutral-200 rounded p-3 min-h-[60px]">
-              <p className="text-sm text-neutral-900 whitespace-pre-wrap">
-                {entry.description || "Sin descripción"}
-              </p>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-neutral-600">
+                Descripción:
+              </span>
+              {!isEditing && (
+                <button
+                  onClick={handleEditClick}
+                  className="text-blue-600 hover:text-blue-700 p-1 rounded hover:bg-blue-50 transition-colors"
+                  aria-label="Editar descripción"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
             </div>
+            {isEditing ? (
+              <div className="space-y-2">
+                <TextArea
+                  value={editedDescription}
+                  onChange={(e) => setEditedDescription(e.target.value)}
+                  placeholder="Ej: Compra de verduras, Alquiler del local..."
+                  className="resize-none w-full"
+                  rows={3}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSaveDescription}
+                    bg="lightgreen"
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center gap-1"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSaving ? "Guardando..." : "Guardar"}
+                  </Button>
+                  <Button
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center gap-1"
+                  >
+                    <X className="w-4 h-4" />
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-neutral-50 border border-neutral-200 rounded p-3 min-h-[60px]">
+                <p className="text-sm text-neutral-900 whitespace-pre-wrap">
+                  {entry.description || "Sin descripción"}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Created By */}

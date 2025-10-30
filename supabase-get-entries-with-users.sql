@@ -29,5 +29,5 @@ as $$
     u.email as user_email
   from entries e
   left join auth.users u on e.created_by = u.id
-  order by e.date desc;
+  order by e.created_at desc;
 $$;
