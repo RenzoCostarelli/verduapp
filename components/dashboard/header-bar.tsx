@@ -38,12 +38,12 @@ export default function HeaderBar({
 
       {/* Desktop actions */}
       <div className="gap-2 hidden md:flex">
-        <Button
+        {/* <Button
           onClick={onNewMovement}
           className="bg-green-600 hover:bg-green-700"
         >
           + Nuevo Movimiento
-        </Button>
+        </Button> */}
         <Link href={reportsHref}>
           <Button bg="lightgreen">Reportes</Button>
         </Link>

@@ -3,11 +3,14 @@
 
 import { CsvExportButton } from "@/components/csv-export-button";
 import { ReportChart } from "@/components/report-chart";
+import { PaymentMethodChart } from "@/components/payment-method-chart";
 import { dataService } from "@/lib/data-service";
-import type { Entry } from "@/lib/types";
+import type { Entry, DateRange } from "@/lib/types";
 import { useEffect, useMemo, useState } from "react";
 import { SummaryCards } from "../summary-cards";
-import { DateRangeCard } from "./date-range-card";
+import { PeriodFilters } from "../period-filters";
+import { getPaymentMethodLabel } from "@/lib/utils";
+import { Card } from "pixel-retroui";
 
 type ReportsClientProps = {
   defaultFrom: string; // YYYY-MM-DD
@@ -17,6 +20,12 @@ type ReportsClientProps = {
 function localISODateKey(d: Date | string) {
   const dd = typeof d === "string" ? new Date(d) : d;
   return new Date(dd.getTime() - dd.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split("T")[0];
+}
+
+function toISOString(d: Date) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
     .toISOString()
     .split("T")[0];
 }
@@ -37,6 +46,12 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
       setIsLoading(false);
     })();
   }, []);
+
+  // Handler for period filter changes
+  const handlePeriodChange = (range: DateRange) => {
+    setFromDate(toISOString(range.from));
+    setToDate(toISOString(range.to));
+  };
 
   // Filter by inclusive end date
   const filteredEntries = useMemo(() => {
@@ -103,6 +118,23 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
     return days;
   }, [filteredEntries, fromDate, toDate]);
 
+  // Payment method data (aggregate by payment method)
+  const paymentMethodData = useMemo(() => {
+    const methodTotals = new Map<string, number>();
+
+    for (const e of filteredEntries) {
+      const current = methodTotals.get(e.method) ?? 0;
+      methodTotals.set(e.method, current + e.amount);
+    }
+
+    return Array.from(methodTotals.entries())
+      .map(([method, total]) => ({
+        name: getPaymentMethodLabel(method),
+        total,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [filteredEntries]);
+
   if (isLoading) {
     return (
       <div className="min-h-[40vh] bg-background flex items-center justify-center">
@@ -113,18 +145,7 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
 
   return (
     <>
-      {/* Date Range */}
-      <div className="mb-8">
-        <DateRangeCard
-          title="Seleccionar Período"
-          from={fromDate}
-          to={toDate}
-          onChange={({ from, to }) => {
-            setFromDate(from);
-            setToDate(to);
-          }}
-        />
-      </div>
+      {/* Period Filters */}
 
       {/* Summary */}
       <div className="mb-8">
@@ -142,6 +163,12 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
           }}
         />
       </div>
+      <Card className="mb-8">
+        <h2 className="text-sm font-semibold mb-4 text-foreground">
+          Seleccionar Período
+        </h2>
+        <PeriodFilters onFilterChange={handlePeriodChange} />
+      </Card>
 
       {/* Chart */}
       {chartData.length > 0 && (
@@ -150,6 +177,16 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
             Ingresos vs Gastos
           </h2>
           <ReportChart data={chartData} />
+        </div>
+      )}
+
+      {/* Payment Method Chart */}
+      {paymentMethodData.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4 text-foreground">
+            Total por Método de Pago
+          </h2>
+          <PaymentMethodChart data={paymentMethodData} />
         </div>
       )}
 

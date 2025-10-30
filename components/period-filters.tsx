@@ -63,7 +63,7 @@ export function PeriodFilters({ onFilterChange }: PeriodFiltersProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1">
         <Button
           bg={filterType === "today" ? "black" : ""}
           textColor={filterType === "today" ? "white" : ""}

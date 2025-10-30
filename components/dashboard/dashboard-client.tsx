@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EntryForm } from "../entry-form";
 import FiltersCard from "./filters-card";
 import HeaderBar from "./header-bar";
+import NavBar from "../ui/nav-bar";
 
 type Props = {
   defaultDateRange: DateRange;
@@ -121,7 +122,7 @@ export function DashboardClient({
             onDelete={handleDeleteEntry}
           />
         </div>
-
+        <NavBar />
         <Button
           onClick={openPopup}
           bg="green"
@@ -140,7 +141,7 @@ export function DashboardClient({
         >
           <EntryForm
             isOpen={isPopupOpen}
-            onClose={() => setIsModalOpen(false)}
+            onClose={closePopup}
             onSubmit={handleAddEntry}
           />
         </Popup>

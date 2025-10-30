@@ -146,8 +146,8 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
                 <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                   {entry.description || "-"}
                 </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {entry.user_email?.split("@") || "-"}
+                <td className="px-4 py-3 text-sm capitalize text-muted-foreground">
+                  {entry.user_email?.split("@")[0] || "-"}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <Button
