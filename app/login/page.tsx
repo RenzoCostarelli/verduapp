@@ -28,8 +28,11 @@ export default function LoginPage() {
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setIsSubmitting(true);
+    const fullEmail = data.email.includes("@")
+      ? data.email
+      : `${data.email}@verduapp.com`;
     try {
-      const result = await signIn(data.email, data.password);
+      const result = await signIn(fullEmail, data.password);
 
       if (result?.error) {
         toast.error("Error", {
@@ -40,7 +43,7 @@ export default function LoginPage() {
       // If successful, redirect will happen and this won't be reached
     } catch (error) {
       // Only show error if it's not a redirect (Next.js throws on redirect)
-      if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      if (error instanceof Error && error.message === "NEXT_REDIRECT") {
         // This is a successful redirect, don't show error
         throw error;
       }
