@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/formatting";
 import type { Entry, PaymentMethod } from "@/lib/types";
 import { getEntryTypeLabel, getPaymentMethodLabel } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { Card, Input } from "pixel-retroui";
+import { EntryDetailDialog } from "./entry-detail-dialog";
 
 interface EntriesTableProps {
   entries: Entry[];
@@ -22,6 +23,8 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   // Filter and search
   const filteredEntries = useMemo(() => {
@@ -51,6 +54,16 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
     if (confirm("¿Estás seguro de que deseas eliminar este movimiento?")) {
       onDelete(id);
     }
+  };
+
+  const handleViewDetail = (entry: Entry) => {
+    setSelectedEntry(entry);
+    setIsDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedEntry(null);
   };
 
   if (entries.length === 0) {
@@ -130,17 +143,17 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
                   </Badge>
                 </td>
                 <td
-                  className={`px-4 py-3 font-semibold ${
+                  className={`px-4 py-3 font-semibold whitespace-nowrap ${
                     entry.type === "income" ? "text-green-600" : "text-red-600"
                   }`}
                 >
                   {entry.type === "income" ? "+" : "-"}
                   {formatCurrency(entry.amount)}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground text-xs">
+                <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
                   {formatDate(entry.date)}
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3 text-sm ">
                   {getPaymentMethodLabel(entry.method)}
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
@@ -150,14 +163,24 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
                   {entry.user_email?.split("@")[0] || "-"}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(entry.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center justify-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleViewDetail(entry)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(entry.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -197,6 +220,12 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
           </div>
         </div>
       )}
+
+      <EntryDetailDialog
+        entry={selectedEntry}
+        isOpen={isDetailOpen}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 }
