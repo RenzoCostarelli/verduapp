@@ -1,28 +1,18 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { toast } from "sonner";
+import * as z from "zod";
 
 import { dataService } from "@/lib/data-service";
-import { getNowInArgentina, formatCurrency } from "@/lib/formatting";
+import { formatCurrency, getNowInArgentina } from "@/lib/formatting";
 import type { Entry, EntryType, PaymentMethod } from "@/lib/types";
 
 // retroui
-import {
-  Button,
-  Input,
-  TextArea,
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  Card,
-} from "pixel-retroui";
+import { Button, Card, Input, TextArea } from "pixel-retroui";
 
 // ---- Schema ----
 const entrySchema = z.object({

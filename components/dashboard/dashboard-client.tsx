@@ -1,19 +1,16 @@
-// components/dashboard/dashboard-client.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { SummaryCards } from "@/components/summary-cards";
-import { PeriodFilters } from "@/components/period-filters";
 import { EntriesTable } from "@/components/entries-table";
-import { EntryFormModal } from "@/components/entry-form-modal";
-import { MobileFAB } from "@/components/mobile-fab";
+import { PeriodFilters } from "@/components/period-filters";
+import { SummaryCards } from "@/components/summary-cards";
 import { dataService } from "@/lib/data-service";
-import type { Entry, DateRange, SummaryData } from "@/lib/types";
-import HeaderBar from "./header-bar";
-import FiltersCard from "./filters-card";
-import { Button, Popup } from "pixel-retroui";
-import { EntryForm } from "../entry-form";
+import type { DateRange, Entry, SummaryData } from "@/lib/types";
 import { Plus } from "lucide-react";
+import { Button, Popup } from "pixel-retroui";
+import { useEffect, useMemo, useState } from "react";
+import { EntryForm } from "../entry-form";
+import FiltersCard from "./filters-card";
+import HeaderBar from "./header-bar";
 
 type Props = {
   defaultDateRange: DateRange;
@@ -38,15 +35,19 @@ export function DashboardClient({
   const openPopup = () => setIsPopupOpen(true);
   const closePopup = () => setIsPopupOpen(false);
 
-  // Initialize local storage/IndexedDB data on mount (client-only)
+  // Load entries from Supabase on mount
   useEffect(() => {
-    const initializeData = async () => {
-      await dataService.seedIfEmpty();
-      const allEntries = await dataService.getEntries();
-      setEntries(allEntries);
-      setIsLoading(false);
+    const loadEntries = async () => {
+      try {
+        const allEntries = await dataService.getEntries();
+        setEntries(allEntries);
+      } catch (error) {
+        console.error("Error loading entries:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    initializeData();
+    loadEntries();
   }, []);
 
   // Derived data (no extra effects)
@@ -144,8 +145,6 @@ export function DashboardClient({
           />
         </Popup>
       </div>
-
-      {/* <MobileFAB onClick={() => setIsModalOpen(true)} /> */}
     </main>
   );
 }

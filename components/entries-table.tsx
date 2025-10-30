@@ -1,21 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 // import { Input } from "@/components/ui/input";
-import { Card, Input } from "pixel-retroui";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/formatting";
-import { getPaymentMethodLabel, getEntryTypeLabel } from "@/lib/utils";
 import type { Entry, PaymentMethod } from "@/lib/types";
+import { getEntryTypeLabel, getPaymentMethodLabel } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
+import { Card, Input } from "pixel-retroui";
 
 interface EntriesTableProps {
   entries: Entry[];
@@ -116,6 +109,7 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
               <th className="px-4 py-3 text-left font-semibold">Fecha/Hora</th>
               <th className="px-4 py-3 text-left font-semibold">Método</th>
               <th className="px-4 py-3 text-left font-semibold">Descripción</th>
+              <th className="px-4 py-3 text-left font-semibold">Creado por</th>
               <th className="px-4 py-3 text-center font-semibold">Acciones</th>
             </tr>
           </thead>
@@ -151,6 +145,9 @@ export function EntriesTable({ entries, onDelete }: EntriesTableProps) {
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                   {entry.description || "-"}
+                </td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
+                  {entry.user_email || "-"}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <Button

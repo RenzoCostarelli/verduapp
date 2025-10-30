@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-import { dataService } from "@/lib/data-service";
+import { dataService } from "@/lib/data-service-old";
 import {
   formatDateOnly,
   getNowInArgentina,

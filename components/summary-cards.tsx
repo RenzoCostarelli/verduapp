@@ -1,6 +1,5 @@
 "use client";
 
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/formatting";
 import type { SummaryData } from "@/lib/types";
 import { Card } from "pixel-retroui";
@@ -34,7 +33,7 @@ export function SummaryCards({ data, dateRange }: SummaryCardsProps) {
             Ingresos
           </div>
 
-          <div className="text-xl font-bold text-green-600">
+          <div className=" font-bold text-green-600">
             {formatCurrency(data.totalIncome)}
           </div>
         </Card>
@@ -43,7 +42,7 @@ export function SummaryCards({ data, dateRange }: SummaryCardsProps) {
           <div className="text-sm font-medium text-muted-foreground">
             Gastos
           </div>
-          <div className="text-xl font-bold text-red-600 ">
+          <div className=" font-bold text-red-600 ">
             {formatCurrency(data.totalExpenses)}
           </div>
         </Card>
@@ -54,7 +53,7 @@ export function SummaryCards({ data, dateRange }: SummaryCardsProps) {
           </div>
 
           <div
-            className={`text-xl font-bold ${
+            className={` font-bold ${
               data.balance >= 0 ? "text-blue-600" : "text-red-600"
             }`}
           >

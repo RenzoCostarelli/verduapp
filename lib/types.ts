@@ -13,6 +13,9 @@ export interface Entry {
   date: Date;
   description?: string;
   method: PaymentMethod;
+  created_by: string;
+  created_at?: Date;
+  user_email?: string;
 }
 
 export interface SummaryData {

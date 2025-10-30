@@ -1,108 +1,119 @@
 import type { Entry, DateRange } from "./types";
+import { createClient } from "@/lib/supabase/client";
 
-// Generate unique ID using crypto.randomUUID
-const generateId = (): string => {
-  if (typeof window !== "undefined" && window.crypto) {
-    return crypto.randomUUID();
-  }
-  // Fallback for environments without crypto
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
-const STORAGE_KEY = "greengrocery.entries";
-
-// Abstract data service for easy swapping to API later
+// --- Core Service using Supabase ---
 export const dataService = {
-  // Get all entries
+  /**
+   * Get all entries from Supabase
+   */
   async getEntries(): Promise<Entry[]> {
-    if (typeof window === "undefined") return [];
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const entries = JSON.parse(data) as Array<any>;
-    return entries.map((e) => ({
-      ...e,
+    const supabase = createClient();
+
+    // Use RPC function to get entries with user emails
+    const { data, error } = await supabase.rpc("get_entries_with_users");
+
+    if (error) {
+      console.error("Error fetching entries:", error);
+      throw error;
+    }
+
+    // Convert date strings to Date objects
+    return (data || []).map((e: {
+      id: string;
+      type: string;
+      amount: number;
+      date: string;
+      description: string | null;
+      method: string;
+      created_by: string;
+      created_at: string | null;
+      user_email: string | null;
+    }) => ({
+      id: e.id,
+      type: e.type as Entry["type"],
+      amount: e.amount,
       date: new Date(e.date),
+      description: e.description || undefined,
+      method: e.method as Entry["method"],
+      created_by: e.created_by,
+      created_at: e.created_at ? new Date(e.created_at) : undefined,
+      user_email: e.user_email || undefined,
     }));
   },
 
-  // Add new entry
-  async addEntry(entry: Omit<Entry, "id">): Promise<Entry> {
-    const entries = await this.getEntries();
-    const newEntry: Entry = {
-      ...entry,
-      id: generateId(),
+  /**
+   * Add new entry to Supabase
+   */
+  async addEntry(entry: Omit<Entry, "id" | "created_by" | "created_at">): Promise<Entry> {
+    const supabase = createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    const { data, error } = await supabase
+      .from("entries")
+      .insert({
+        ...entry,
+        created_by: user.id,
+        date: entry.date.toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error adding entry:", error);
+      throw error;
+    }
+
+    return {
+      ...data,
+      date: new Date(data.date),
+      created_at: data.created_at ? new Date(data.created_at) : undefined,
     };
-    entries.push(newEntry);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    return newEntry;
   },
 
-  // Delete entry
+  /**
+   * Delete entry by id from Supabase
+   */
   async deleteEntry(id: string): Promise<void> {
-    const entries = await this.getEntries();
-    const filtered = entries.filter((e) => e.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    const supabase = createClient();
+
+    const { error } = await supabase.from("entries").delete().eq("id", id);
+
+    if (error) {
+      console.error("Error deleting entry:", error);
+      throw error;
+    }
   },
 
-  // Get entries for date range
+  /**
+   * Filter entries by date range
+   */
   async getEntriesByDateRange(range: DateRange): Promise<Entry[]> {
-    const entries = await this.getEntries();
-    return entries.filter((e) => {
-      const entryDate = new Date(e.date);
-      return entryDate >= range.from && entryDate <= range.to;
-    });
-  },
+    const supabase = createClient();
 
-  // Seed initial data if empty
-  async seedIfEmpty(): Promise<void> {
-    const entries = await this.getEntries();
-    if (entries.length > 0) return;
+    const { data, error } = await supabase
+      .from("entries")
+      .select("*")
+      .gte("date", range.from.toISOString())
+      .lte("date", range.to.toISOString())
+      .order("date", { ascending: false });
 
-    const now = new Date();
-    const seedData: Entry[] = [
-      {
-        id: generateId(),
-        type: "income",
-        amount: 5000,
-        date: new Date(now.getFullYear(), now.getMonth(), 1),
-        description: "Ventas del día",
-        method: "cash",
-      },
-      {
-        id: generateId(),
-        type: "expense",
-        amount: 1200,
-        date: new Date(now.getFullYear(), now.getMonth(), 2),
-        description: "Compra de verduras",
-        method: "transfer",
-      },
-      {
-        id: generateId(),
-        type: "income",
-        amount: 3500,
-        date: new Date(now.getFullYear(), now.getMonth(), 5),
-        description: "Ventas del día",
-        method: "debit_card",
-      },
-      {
-        id: generateId(),
-        type: "expense",
-        amount: 800,
-        date: new Date(now.getFullYear(), now.getMonth(), 7),
-        description: "Alquiler del local",
-        method: "transfer",
-      },
-      {
-        id: generateId(),
-        type: "income",
-        amount: 4200,
-        date: new Date(now.getFullYear(), now.getMonth(), 10),
-        description: "Ventas del día",
-        method: "cash",
-      },
-    ];
+    if (error) {
+      console.error("Error fetching entries by date range:", error);
+      throw error;
+    }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seedData));
+    return (data || []).map((e) => ({
+      ...e,
+      date: new Date(e.date),
+      created_at: e.created_at ? new Date(e.created_at) : undefined,
+    }));
   },
 };

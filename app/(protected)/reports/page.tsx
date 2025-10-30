@@ -1,5 +1,7 @@
 import { ReportsClient } from "@/components/reports/reports-client";
 import { getNowInArgentina } from "@/lib/formatting";
+import Link from "next/link";
+import { Button } from "pixel-retroui";
 
 function monthRangeISO() {
   const now = getNowInArgentina();
@@ -19,13 +21,18 @@ export default function Page() {
     <main className="min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Reportes</h1>
             <p className="text-muted-foreground text-sm mt-1">
               Análisis de flujo de caja
             </p>
           </div>
+          <Link href={"/"}>
+            <Button bg="lightgreen">
+              <span className="mr-1">◀</span>
+            </Button>
+          </Link>
         </div>
 
         {/* Client area */}

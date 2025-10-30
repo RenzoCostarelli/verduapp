@@ -1,15 +1,13 @@
 // components/reports/reports-client.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ReportChart } from "@/components/report-chart";
 import { CsvExportButton } from "@/components/csv-export-button";
+import { ReportChart } from "@/components/report-chart";
 import { dataService } from "@/lib/data-service";
-import { formatCurrency } from "@/lib/formatting";
 import type { Entry } from "@/lib/types";
-import { DateRangeCard } from "./date-range-card";
-import { ReportSummaryCards } from "./report-summary-cards";
+import { useEffect, useMemo, useState } from "react";
 import { SummaryCards } from "../summary-cards";
+import { DateRangeCard } from "./date-range-card";
 
 type ReportsClientProps = {
   defaultFrom: string; // YYYY-MM-DD
