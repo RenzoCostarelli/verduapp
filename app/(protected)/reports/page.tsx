@@ -3,19 +3,21 @@ import { getNowInArgentina } from "@/lib/formatting";
 import Link from "next/link";
 import { Button } from "pixel-retroui";
 
-function monthRangeISO() {
+function todayRangeISO() {
   const now = getNowInArgentina();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
   const toISO = (d: Date) =>
     new Date(d.getTime() - d.getTimezoneOffset() * 60000)
       .toISOString()
       .split("T")[0];
-  return { from: toISO(monthStart), to: toISO(monthEnd) };
+  return { from: toISO(today), to: toISO(tomorrow) };
 }
 
 export default function Page() {
-  const { from, to } = monthRangeISO();
+  const { from, to } = todayRangeISO();
 
   return (
     <main className="min-h-screen">

@@ -134,4 +134,68 @@ export const dataService = {
       created_at: e.created_at ? new Date(e.created_at) : undefined,
     }));
   },
+
+  /**
+   * Get paginated entries with total count
+   */
+  async getPaginatedEntries(params: {
+    page: number;
+    limit: number;
+    searchTerm?: string;
+  }): Promise<{ entries: Entry[]; total: number }> {
+    const supabase = createClient();
+    const { page, limit, searchTerm } = params;
+    const offset = (page - 1) * limit;
+
+    // Build query for entries with user emails
+    let query = supabase.rpc("get_entries_with_users");
+
+    // Get total count first
+    const { count, error: countError } = await supabase
+      .from("entries")
+      .select("*", { count: "exact", head: true });
+
+    if (countError) {
+      console.error("Error counting entries:", countError);
+      throw countError;
+    }
+
+    // Get paginated data
+    const { data, error } = await query
+      .order("date", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error("Error fetching paginated entries:", error);
+      throw error;
+    }
+
+    // Convert date strings to Date objects
+    const entries = (data || []).map((e: {
+      id: string;
+      type: string;
+      amount: number;
+      date: string;
+      description: string | null;
+      method: string;
+      created_by: string;
+      created_at: string | null;
+      user_email: string | null;
+    }) => ({
+      id: e.id,
+      type: e.type as Entry["type"],
+      amount: e.amount,
+      date: new Date(e.date),
+      description: e.description || undefined,
+      method: e.method as Entry["method"],
+      created_by: e.created_by,
+      created_at: e.created_at ? new Date(e.created_at) : undefined,
+      user_email: e.user_email || undefined,
+    }));
+
+    return {
+      entries,
+      total: count || 0,
+    };
+  },
 };

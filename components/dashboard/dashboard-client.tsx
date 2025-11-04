@@ -4,6 +4,7 @@ import { EntriesTable } from "@/components/entries-table";
 import { PeriodFilters } from "@/components/period-filters";
 import { SummaryCards } from "@/components/summary-cards";
 import { dataService } from "@/lib/data-service";
+import { getNowInArgentina } from "@/lib/formatting";
 import type { DateRange, Entry, SummaryData } from "@/lib/types";
 import { Plus } from "lucide-react";
 import { Button, Popup } from "pixel-retroui";
@@ -26,22 +27,23 @@ export function DashboardClient({
   title,
   subtitle,
 }: Props) {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange | null>(
-    defaultDateRange
-  );
+  const [allEntries, setAllEntries] = useState<Entry[]>([]);
+  const [paginatedEntries, setPaginatedEntries] = useState<Entry[]>([]);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const openPopup = () => setIsPopupOpen(true);
   const closePopup = () => setIsPopupOpen(false);
 
-  // Load entries from Supabase on mount
+  // Load all entries for today's stats only
   useEffect(() => {
     const loadEntries = async () => {
       try {
         const allEntries = await dataService.getEntries();
-        setEntries(allEntries);
+        setAllEntries(allEntries);
       } catch (error) {
         console.error("Error loading entries:", error);
       } finally {
@@ -51,20 +53,50 @@ export function DashboardClient({
     loadEntries();
   }, []);
 
-  // Derived data (no extra effects)
-  const filteredEntries = useMemo(() => {
-    if (!dateRange) return entries;
-    return entries.filter((e) => {
-      const entryDate = new Date(e.date);
-      return entryDate >= dateRange.from && entryDate < dateRange.to;
-    });
-  }, [entries, dateRange]);
+  // Load paginated entries for the table
+  useEffect(() => {
+    const loadPaginatedEntries = async () => {
+      setIsPaginationLoading(true);
+      try {
+        const { entries, total } = await dataService.getPaginatedEntries({
+          page: currentPage,
+          limit: 10,
+        });
+        setPaginatedEntries(entries);
+        setTotalEntries(total);
+      } catch (error) {
+        console.error("Error loading paginated entries:", error);
+      } finally {
+        setIsPaginationLoading(false);
+      }
+    };
+    loadPaginatedEntries();
+  }, [currentPage]);
 
+  // Calculate today's date range for stats
+  const todayRange = useMemo(() => {
+    const now = getNowInArgentina();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return { from: today, to: tomorrow };
+  }, []);
+
+  // Filter entries for today only (for stats)
+  const todayEntries = useMemo(() => {
+    return allEntries.filter((e) => {
+      const entryDate = new Date(e.date);
+      return entryDate >= todayRange.from && entryDate < todayRange.to;
+    });
+  }, [allEntries, todayRange]);
+
+  // Calculate summary for today only
   const summary: SummaryData = useMemo(() => {
-    const totalIncome = filteredEntries
+    const totalIncome = todayEntries
       .filter((e) => e.type === "income")
       .reduce((sum, e) => sum + e.amount, 0);
-    const totalExpenses = filteredEntries
+    const totalExpenses = todayEntries
       .filter((e) => e.type === "expense")
       .reduce((sum, e) => sum + e.amount, 0);
 
@@ -73,26 +105,41 @@ export function DashboardClient({
       totalExpenses,
       balance: totalIncome - totalExpenses,
     };
-  }, [filteredEntries]);
+  }, [todayEntries]);
 
   // Handlers
   const handleAddEntry = async (newEntry: Entry) => {
-    setEntries((prev) => [...prev, newEntry]);
+    setAllEntries((prev) => [...prev, newEntry]);
+    setPaginatedEntries((prev) => [newEntry, ...prev.slice(0, 9)]); // Add to top of current page
+    setTotalEntries((prev) => prev + 1);
     setIsModalOpen(false);
+    closePopup();
   };
 
   const handleDeleteEntry = async (id: string) => {
     await dataService.deleteEntry(id);
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+    setAllEntries((prev) => prev.filter((e) => e.id !== id));
+    // Reload current page after deletion
+    const { entries, total } = await dataService.getPaginatedEntries({
+      page: currentPage,
+      limit: 10,
+    });
+    setPaginatedEntries(entries);
+    setTotalEntries(total);
   };
 
   const handleUpdateEntry = (updatedEntry: Entry) => {
-    setEntries((prev) =>
+    setAllEntries((prev) =>
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+    );
+    setPaginatedEntries((prev) =>
       prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
     );
   };
 
-  const handleFilterChange = (range: DateRange) => setDateRange(range);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   if (isLoading) {
     return (
@@ -112,21 +159,19 @@ export function DashboardClient({
           onNewMovement={() => setIsModalOpen(true)}
         />
 
-        <div className="mb-8">
-          <SummaryCards data={summary} dateRange={dateRange || undefined} />
-        </div>
-
-        <div className="mb-8">
-          <FiltersCard>
-            <PeriodFilters onFilterChange={handleFilterChange} />
-          </FiltersCard>
+        <div className="mb-3">
+          <SummaryCards data={summary} dateRange={todayRange} />
         </div>
 
         <div className="mb-8">
           <EntriesTable
-            entries={filteredEntries}
+            entries={paginatedEntries}
+            totalEntries={totalEntries}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
             onDelete={handleDeleteEntry}
             onUpdate={handleUpdateEntry}
+            isLoading={isPaginationLoading}
           />
         </div>
         <NavBar />

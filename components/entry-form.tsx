@@ -210,7 +210,7 @@ export function EntryForm({ onClose, onSubmit }: EntryFormModalProps) {
         <div className="flex flex-col">
           <label className="text-sm font-medium">Método de Pago *</label>
 
-          <div className="relative w-full">
+          <div className="relative ">
             <Button
               type="button"
               className="w-[90%] mx-auto justify-between"

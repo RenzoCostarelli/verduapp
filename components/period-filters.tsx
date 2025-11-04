@@ -14,7 +14,7 @@ interface PeriodFiltersProps {
 export function PeriodFilters({ onFilterChange }: PeriodFiltersProps) {
   const now = getNowInArgentina();
   const [filterType, setFilterType] = useState<
-    "today" | "week" | "month" | "custom"
+    "today" | "week" | "month" | "all" | "custom"
   >("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -41,12 +41,19 @@ export function PeriodFilters({ onFilterChange }: PeriodFiltersProps) {
         const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
         return { from: monthStart, to: monthEnd };
       }
+      case "all": {
+        // Set a very early date (e.g., year 2000) to capture all entries
+        const allStart = new Date(2000, 0, 1);
+        const allEnd = new Date(today);
+        allEnd.setFullYear(today.getFullYear() + 10); // 10 years in the future
+        return { from: allStart, to: allEnd };
+      }
       default:
         return { from: today, to: today };
     }
   };
 
-  const handleFilterClick = (type: "today" | "week" | "month") => {
+  const handleFilterClick = (type: "today" | "week" | "month" | "all") => {
     setFilterType(type);
     onFilterChange(getDateRange(type));
   };
@@ -63,7 +70,7 @@ export function PeriodFilters({ onFilterChange }: PeriodFiltersProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-0">
+      <div className="flex gap-0 items-center flex-wrap">
         <Button
           bg={filterType === "today" ? "black" : ""}
           textColor={filterType === "today" ? "white" : ""}
@@ -80,17 +87,25 @@ export function PeriodFilters({ onFilterChange }: PeriodFiltersProps) {
           onClick={() => handleFilterClick("week")}
           className="text-sm"
         >
-          Esta Semana
+          Semana
         </Button>
         <Button
           bg={filterType === "month" ? "black" : ""}
           textColor={filterType === "month" ? "white" : ""}
           shadow={filterType === "month" ? "lightgray" : ""}
-          // variant={filterType === "month" ? "default" : "outline"}
           onClick={() => handleFilterClick("month")}
           className="text-sm"
         >
-          Este Mes
+          Mes
+        </Button>
+        <Button
+          bg={filterType === "all" ? "black" : ""}
+          textColor={filterType === "all" ? "white" : ""}
+          shadow={filterType === "all" ? "lightgray" : ""}
+          onClick={() => handleFilterClick("all")}
+          className="text-sm"
+        >
+          Todos
         </Button>
       </div>
 

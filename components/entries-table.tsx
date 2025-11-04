@@ -13,22 +13,41 @@ import { EntryDetailDialog } from "./entry-detail-dialog";
 
 interface EntriesTableProps {
   entries: Entry[];
+  totalEntries?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
   onDelete: (id: string) => void;
   onUpdate?: (updatedEntry: Entry) => void;
+  isLoading?: boolean;
 }
 
-export function EntriesTable({ entries, onDelete, onUpdate }: EntriesTableProps) {
+export function EntriesTable({
+  entries,
+  totalEntries,
+  currentPage: externalCurrentPage,
+  onPageChange,
+  onDelete,
+  onUpdate,
+  isLoading = false,
+}: EntriesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [methodFilter, setMethodFilter] = useState<PaymentMethod | "all">(
     "all"
   );
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Filter and search
+  // Use external pagination if provided, otherwise use internal
+  const isServerSidePagination = onPageChange !== undefined;
+  const currentPage = isServerSidePagination ? externalCurrentPage! : internalCurrentPage;
+
+  // Filter and search (only for client-side pagination)
   const filteredEntries = useMemo(() => {
+    if (isServerSidePagination) {
+      return entries; // Server already filtered
+    }
     return entries.filter((entry) => {
       const matchesSearch =
         !searchTerm ||
@@ -42,14 +61,20 @@ export function EntriesTable({ entries, onDelete, onUpdate }: EntriesTableProps)
 
       return matchesSearch && matchesMethod;
     });
-  }, [entries, searchTerm, methodFilter]);
+  }, [entries, searchTerm, methodFilter, isServerSidePagination]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+  const totalPages = isServerSidePagination
+    ? Math.ceil((totalEntries || 0) / itemsPerPage)
+    : Math.ceil(filteredEntries.length / itemsPerPage);
+
   const paginatedEntries = useMemo(() => {
+    if (isServerSidePagination) {
+      return entries; // Server already paginated
+    }
     const start = (currentPage - 1) * itemsPerPage;
     return filteredEntries.slice(start, start + itemsPerPage);
-  }, [filteredEntries, currentPage]);
+  }, [filteredEntries, currentPage, isServerSidePagination, entries]);
 
   const handleDelete = (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este movimiento?")) {
@@ -67,6 +92,14 @@ export function EntriesTable({ entries, onDelete, onUpdate }: EntriesTableProps)
     setSelectedEntry(null);
   };
 
+  const handlePageChange = (newPage: number) => {
+    if (isServerSidePagination && onPageChange) {
+      onPageChange(newPage);
+    } else {
+      setInternalCurrentPage(newPage);
+    }
+  };
+
   if (entries.length === 0) {
     return (
       <div className="text-center py-12 bg-card rounded-lg border">
@@ -82,39 +115,30 @@ export function EntriesTable({ entries, onDelete, onUpdate }: EntriesTableProps)
 
   return (
     <div className="space-y-4">
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Input
-          placeholder="Buscar por descripción o método..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="flex-1"
-        />
-        {/* <Select
-          value={methodFilter}
-          onValueChange={(value) =>
-            setMethodFilter(value as PaymentMethod | "all")
-          }
-        >
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los métodos</SelectItem>
-            <SelectItem value="cash">Efectivo</SelectItem>
-            <SelectItem value="debit_card">Tarjeta de Débito</SelectItem>
-            <SelectItem value="credit_card">Tarjeta de Crédito</SelectItem>
-            <SelectItem value="transfer">Transferencia</SelectItem>
-            <SelectItem value="other">Otro</SelectItem>
-          </SelectContent>
-        </Select> */}
-      </div>
+      {/* Search and Filter - Only show for client-side pagination */}
+      {!isServerSidePagination && (
+        <div className="flex flex-col sm:flex-row gap-2 px-1">
+          <Input
+            placeholder="Buscar por descripción o método..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              handlePageChange(1);
+            }}
+            className="flex-1"
+          />
+        </div>
+      )}
+
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="text-center py-4 text-muted-foreground text-sm">
+          Cargando...
+        </div>
+      )}
 
       {/* Table */}
-      <Card className="overflow-x-auto ">
+      <Card className="overflow-x-auto flex-1">
         <table className="w-full text-sm">
           <thead className="bg-muted border-b">
             <tr>
@@ -199,14 +223,17 @@ export function EntriesTable({ entries, onDelete, onUpdate }: EntriesTableProps)
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {(currentPage - 1) * itemsPerPage + 1} a{" "}
-            {Math.min(currentPage * itemsPerPage, filteredEntries.length)} de{" "}
-            {filteredEntries.length}
+            {Math.min(
+              currentPage * itemsPerPage,
+              isServerSidePagination ? totalEntries || 0 : filteredEntries.length
+            )}{" "}
+            de {isServerSidePagination ? totalEntries || 0 : filteredEntries.length}
           </p>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
               className="bg-transparent"
             >
@@ -215,9 +242,7 @@ export function EntriesTable({ entries, onDelete, onUpdate }: EntriesTableProps)
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                setCurrentPage(Math.min(totalPages, currentPage + 1))
-              }
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
               className="bg-transparent"
             >
