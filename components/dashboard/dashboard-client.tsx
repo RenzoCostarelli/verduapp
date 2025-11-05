@@ -1,7 +1,6 @@
 "use client";
 
 import { EntriesTable } from "@/components/entries-table";
-import { PeriodFilters } from "@/components/period-filters";
 import { SummaryCards } from "@/components/summary-cards";
 import { dataService } from "@/lib/data-service";
 import { getNowInArgentina } from "@/lib/formatting";
@@ -10,9 +9,8 @@ import { Plus } from "lucide-react";
 import { Button, Popup } from "pixel-retroui";
 import { useEffect, useMemo, useState } from "react";
 import { EntryForm } from "../entry-form";
-import FiltersCard from "./filters-card";
-import HeaderBar from "./header-bar";
 import NavBar from "../ui/nav-bar";
+import HeaderBar from "./header-bar";
 
 type Props = {
   defaultDateRange: DateRange;

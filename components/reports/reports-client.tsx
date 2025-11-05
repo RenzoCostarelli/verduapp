@@ -5,12 +5,14 @@ import { CsvExportButton } from "@/components/csv-export-button";
 import { ReportChart } from "@/components/report-chart";
 import { PaymentMethodChart } from "@/components/payment-method-chart";
 import { dataService } from "@/lib/data-service";
-import type { Entry, DateRange } from "@/lib/types";
+import type { Entry } from "@/lib/types";
 import { useEffect, useMemo, useState } from "react";
 import { SummaryCards } from "../summary-cards";
-import { PeriodFilters } from "../period-filters";
 import { getPaymentMethodLabel } from "@/lib/utils";
-import { Card } from "pixel-retroui";
+import { Button, Card, Popup } from "pixel-retroui";
+import { Filters, FilterParams } from "../filters";
+import { EntriesTable } from "../entries-table";
+import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 
 type ReportsClientProps = {
   defaultFrom: string; // YYYY-MM-DD
@@ -31,41 +33,133 @@ function toISOString(d: Date) {
 }
 
 export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
-  // Initialize without effects
-  const [fromDate, setFromDate] = useState(defaultFrom);
-  const [toDate, setToDate] = useState(defaultTo);
-
+  // State
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [paginatedEntries, setPaginatedEntries] = useState<Entry[]>([]);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<
+    Array<{ id: string; email: string }>
+  >([]);
+  const [filters, setFilters] = useState<FilterParams>({
+    fromDate: defaultFrom,
+    toDate: defaultTo,
+    period: "today",
+  });
+  const [isChartsExpanded, setIsChartsExpanded] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
-  // Load data (allowed effect: external system)
+  // Load all entries for stats and charts
   useEffect(() => {
     (async () => {
       const allEntries = await dataService.getEntries();
+      const users = await dataService.getEntryCreators();
       setEntries(allEntries);
+      setAvailableUsers(users);
       setIsLoading(false);
     })();
   }, []);
 
-  // Handler for period filter changes
-  const handlePeriodChange = (range: DateRange) => {
-    setFromDate(toISOString(range.from));
-    setToDate(toISOString(range.to));
+  // Load paginated entries for table with filters
+  useEffect(() => {
+    const loadPaginatedEntries = async () => {
+      setIsPaginationLoading(true);
+      try {
+        const { entries, total } = await dataService.getPaginatedEntries({
+          page: currentPage,
+          limit: 10,
+          createdBy: filters.createdBy,
+          fromDate: filters.fromDate,
+          toDate: filters.toDate,
+          paymentMethod:
+            filters.paymentMethod === "all" ? undefined : filters.paymentMethod,
+          entryType:
+            filters.entryType === "all" ? undefined : filters.entryType,
+        });
+        setPaginatedEntries(entries);
+        setTotalEntries(total);
+      } catch (error) {
+        console.error("Error loading paginated entries:", error);
+      } finally {
+        setIsPaginationLoading(false);
+      }
+    };
+    loadPaginatedEntries();
+  }, [currentPage, filters]);
+
+  // Handler for filter changes
+  const handleFilterChange = (newFilters: FilterParams) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+    setIsFiltersOpen(false); // Close the popup after applying filters
   };
 
-  // Filter by inclusive end date
+  // Handler for pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handler for delete entry
+  const handleDeleteEntry = async (id: string) => {
+    await dataService.deleteEntry(id);
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    // Reload current page after deletion
+    const { entries, total } = await dataService.getPaginatedEntries({
+      page: currentPage,
+      limit: 10,
+      createdBy: filters.createdBy,
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+      paymentMethod:
+        filters.paymentMethod === "all" ? undefined : filters.paymentMethod,
+      entryType: filters.entryType === "all" ? undefined : filters.entryType,
+    });
+    setPaginatedEntries(entries);
+    setTotalEntries(total);
+  };
+
+  // Handler for update entry
+  const handleUpdateEntry = (updatedEntry: Entry) => {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+    );
+    setPaginatedEntries((prev) =>
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+    );
+  };
+
+  // Filter entries based on current filters
   const filteredEntries = useMemo(() => {
-    if (!fromDate || !toDate) return [];
-    const fromD = new Date(`${fromDate}T00:00:00`);
-    const toD = new Date(`${toDate}T00:00:00`);
+    if (!filters.fromDate || !filters.toDate) return entries;
+
+    const fromD = new Date(`${filters.fromDate}T00:00:00`);
+    const toD = new Date(`${filters.toDate}T00:00:00`);
     const toInclusive = new Date(toD);
     toInclusive.setDate(toInclusive.getDate() + 1);
 
     return entries.filter((e) => {
       const d = new Date(e.date);
-      return d >= fromD && d < toInclusive;
+      const dateMatch = d >= fromD && d < toInclusive;
+
+      // Apply additional filters
+      const createdByMatch =
+        !filters.createdBy || e.created_by === filters.createdBy;
+      const paymentMethodMatch =
+        !filters.paymentMethod ||
+        filters.paymentMethod === "all" ||
+        e.method === filters.paymentMethod;
+      const entryTypeMatch =
+        !filters.entryType ||
+        filters.entryType === "all" ||
+        e.type === filters.entryType;
+
+      return (
+        dateMatch && createdByMatch && paymentMethodMatch && entryTypeMatch
+      );
     });
-  }, [entries, fromDate, toDate]);
+  }, [entries, filters]);
 
   // Summary
   const { totalIncome, totalExpenses, balance } = useMemo(() => {
@@ -84,7 +178,7 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
 
   // Chart data (aggregate per day)
   const chartData = useMemo(() => {
-    if (!fromDate || !toDate) return [];
+    if (!filters.fromDate || !filters.toDate) return [];
 
     const bucket = new Map<string, { income: number; expenses: number }>();
     for (const e of filteredEntries) {
@@ -95,8 +189,8 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
       bucket.set(key, cur);
     }
 
-    const fromD = new Date(`${fromDate}T00:00:00`);
-    const toD = new Date(`${toDate}T00:00:00`);
+    const fromD = new Date(`${filters.fromDate}T00:00:00`);
+    const toD = new Date(`${filters.toDate}T00:00:00`);
 
     const days: { name: string; income: number; expenses: number }[] = [];
     const cursor = new Date(fromD);
@@ -116,7 +210,7 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
       cursor.setDate(cursor.getDate() + 1);
     }
     return days;
-  }, [filteredEntries, fromDate, toDate]);
+  }, [filteredEntries, filters.fromDate, filters.toDate]);
 
   // Payment method data (aggregate by payment method)
   const paymentMethodData = useMemo(() => {
@@ -145,8 +239,6 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
 
   return (
     <>
-      {/* Period Filters */}
-
       {/* Summary */}
       <div className="mb-8">
         <SummaryCards
@@ -155,40 +247,102 @@ export function ReportsClient({ defaultFrom, defaultTo }: ReportsClientProps) {
             totalExpenses,
             balance,
           }}
-          dateRange={{
-            // inclusive end: pass "to" as the next day's 00:00 so your
-            // SummaryCards label shows the correct last day (to - 1ms)
-            from: new Date(`${fromDate}T00:00:00`),
-            to: new Date(`${toDate}T00:00:00`),
-          }}
+          dateRange={
+            filters.fromDate && filters.toDate
+              ? {
+                  from: new Date(`${filters.fromDate}T00:00:00`),
+                  to: new Date(`${filters.toDate}T00:00:00`),
+                }
+              : undefined
+          }
         />
       </div>
-      <Card className="mb-8">
-        <h2 className="text-sm font-semibold mb-4 text-foreground">
-          Seleccionar Período
+
+      {/* Filters Button */}
+      <div className="mb-8">
+        <Button
+          onClick={() => setIsFiltersOpen(true)}
+          className="flex items-center gap-2"
+          bg="white"
+        >
+          <Filter className="w-4 h-4" />
+          Filtros
+        </Button>
+      </div>
+
+      {/* Filters Popup */}
+      <Popup
+        isOpen={isFiltersOpen}
+        onClose={() => setIsFiltersOpen(false)}
+        bg="lightgreen"
+        baseBg="white"
+      >
+        <div className="max-w-[90vw] md:max-w-2xl">
+          {/* <h3 className="text-lg font-bold mb-4">Filtros</h3> */}
+          <Filters
+            onFilterChange={handleFilterChange}
+            availableUsers={availableUsers}
+          />
+        </div>
+      </Popup>
+
+      {/* Entries Table */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4 text-foreground">
+          Movimientos
         </h2>
-        <PeriodFilters onFilterChange={handlePeriodChange} />
-      </Card>
+        <EntriesTable
+          entries={paginatedEntries}
+          totalEntries={totalEntries}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          onDelete={handleDeleteEntry}
+          onUpdate={handleUpdateEntry}
+          isLoading={isPaginationLoading}
+        />
+      </div>
 
-      {/* Chart */}
-      {chartData.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-foreground">
-            Ingresos vs Gastos
-          </h2>
-          <ReportChart data={chartData} />
-        </div>
-      )}
+      {/* Collapsible Charts Section */}
+      <div className="mb-8">
+        {/* <Card> */}
+        <Button
+          onClick={() => setIsChartsExpanded(!isChartsExpanded)}
+          className="flex-1 flex items-center justify-between text-left"
+          bg="white"
+        >
+          <h2 className="text-lg font-semibold text-foreground">Gráficos</h2>
+          {isChartsExpanded ? (
+            <ChevronUp className="w-5 h-5" />
+          ) : (
+            <ChevronDown className="w-5 h-5" />
+          )}
+        </Button>
 
-      {/* Payment Method Chart */}
-      {paymentMethodData.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-foreground">
-            Total por Método de Pago
-          </h2>
-          <PaymentMethodChart data={paymentMethodData} />
-        </div>
-      )}
+        {isChartsExpanded && (
+          <div className="mt-4 space-y-6">
+            {/* Chart */}
+            {chartData.length > 0 && (
+              <div>
+                <h3 className="text-md font-semibold mb-4 text-foreground">
+                  Ingresos vs Gastos
+                </h3>
+                <ReportChart data={chartData} />
+              </div>
+            )}
+
+            {/* Payment Method Chart */}
+            {paymentMethodData.length > 0 && (
+              <div>
+                <h3 className="text-md font-semibold mb-4 text-foreground">
+                  Total por Método de Pago
+                </h3>
+                <PaymentMethodChart data={paymentMethodData} />
+              </div>
+            )}
+          </div>
+        )}
+        {/* </Card> */}
+      </div>
 
       {/* Export */}
       <div className="flex justify-end">

@@ -105,11 +105,11 @@ export function PeriodFilters({ onFilterChange }: PeriodFiltersProps) {
           onClick={() => handleFilterClick("all")}
           className="text-sm"
         >
-          Todos
+          X
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2">
+      {/* <div className="flex flex-col sm:flex-row gap-2">
         <Input
           type="date"
           value={customFrom}
@@ -131,7 +131,7 @@ export function PeriodFilters({ onFilterChange }: PeriodFiltersProps) {
         >
           Aplicar
         </Button>
-      </div>
+      </div> */}
     </div>
   );
 }

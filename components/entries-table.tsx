@@ -2,12 +2,11 @@
 
 import { useMemo, useState } from "react";
 // import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/formatting";
 import type { Entry, PaymentMethod } from "@/lib/types";
-import { getEntryTypeLabel, getPaymentMethodLabel } from "@/lib/utils";
-import { ChevronDown, ChevronsDown, Eye, Trash2 } from "lucide-react";
+import { getPaymentMethodLabel } from "@/lib/utils";
+import { Eye, Trash2 } from "lucide-react";
 import { Card, Input } from "pixel-retroui";
 import { EntryDetailDialog } from "./entry-detail-dialog";
 
@@ -41,7 +40,9 @@ export function EntriesTable({
 
   // Use external pagination if provided, otherwise use internal
   const isServerSidePagination = onPageChange !== undefined;
-  const currentPage = isServerSidePagination ? externalCurrentPage! : internalCurrentPage;
+  const currentPage = isServerSidePagination
+    ? externalCurrentPage!
+    : internalCurrentPage;
 
   // Filter and search (only for client-side pagination)
   const filteredEntries = useMemo(() => {
@@ -225,9 +226,14 @@ export function EntriesTable({
             {(currentPage - 1) * itemsPerPage + 1} a{" "}
             {Math.min(
               currentPage * itemsPerPage,
-              isServerSidePagination ? totalEntries || 0 : filteredEntries.length
+              isServerSidePagination
+                ? totalEntries || 0
+                : filteredEntries.length
             )}{" "}
-            de {isServerSidePagination ? totalEntries || 0 : filteredEntries.length}
+            de{" "}
+            {isServerSidePagination
+              ? totalEntries || 0
+              : filteredEntries.length}
           </p>
           <div className="flex gap-2">
             <Button
@@ -242,7 +248,9 @@ export function EntriesTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+              onClick={() =>
+                handlePageChange(Math.min(totalPages, currentPage + 1))
+              }
               disabled={currentPage === totalPages}
               className="bg-transparent"
             >
