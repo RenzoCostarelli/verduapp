@@ -12,9 +12,22 @@ interface SummaryCardsProps {
 export function SummaryCards({ data, dateRange }: SummaryCardsProps) {
   const getDateRangeLabel = () => {
     if (!dateRange) return "";
-    const from = dateRange.from.toLocaleDateString("es-AR");
-    const to = new Date(dateRange.to.getTime() - 1).toLocaleDateString("es-AR");
-    return `${from} a ${to}`;
+
+    // Check if the range is today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const from = new Date(dateRange.from);
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(dateRange.to.getTime() - 1);
+    to.setHours(0, 0, 0, 0);
+
+    if (from.getTime() === today.getTime() && to.getTime() === today.getTime()) {
+      return "Hoy";
+    }
+
+    const fromStr = dateRange.from.toLocaleDateString("es-AR");
+    const toStr = new Date(dateRange.to.getTime() - 1).toLocaleDateString("es-AR");
+    return `${fromStr} a ${toStr}`;
   };
 
   return (

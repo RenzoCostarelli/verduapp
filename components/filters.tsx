@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { getNowInArgentina } from "@/lib/formatting";
 import type { PaymentMethod } from "@/lib/types";
 import { Button, Card } from "pixel-retroui";
@@ -36,7 +35,7 @@ export function Filters({ onFilterChange, availableUsers = [] }: FiltersProps) {
     toDate: "",
     paymentMethod: "all",
     entryType: "all",
-    period: "all",
+    period: "today",
   });
 
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);

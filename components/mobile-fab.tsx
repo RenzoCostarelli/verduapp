@@ -4,13 +4,8 @@
 import { Plus } from "lucide-react";
 import { Button, Popup } from "pixel-retroui";
 import { useState } from "react";
-import { EntryForm } from "./entry-form";
 
-interface MobileFABProps {
-  onClick: () => void;
-}
-
-export function MobileFAB({ onClick }: MobileFABProps) {
+export function MobileFAB() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const openPopup = () => setIsPopupOpen(true);
   const closePopup = () => setIsPopupOpen(false);

@@ -2,17 +2,17 @@
 "use client";
 
 import { CsvExportButton } from "@/components/csv-export-button";
-import { ReportChart } from "@/components/report-chart";
 import { PaymentMethodChart } from "@/components/payment-method-chart";
+import { ReportChart } from "@/components/report-chart";
 import { dataService } from "@/lib/data-service";
 import type { Entry } from "@/lib/types";
-import { useEffect, useMemo, useState } from "react";
-import { SummaryCards } from "../summary-cards";
 import { getPaymentMethodLabel } from "@/lib/utils";
-import { Button, Card, Popup } from "pixel-retroui";
-import { Filters, FilterParams } from "../filters";
-import { EntriesTable } from "../entries-table";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
+import { Button, Popup } from "pixel-retroui";
+import { useEffect, useMemo, useState } from "react";
+import { EntriesTable } from "../entries-table";
+import { FilterParams, Filters } from "../filters";
+import { SummaryCards } from "../summary-cards";
 
 type ReportsClientProps = {
   defaultFrom: string; // YYYY-MM-DD
